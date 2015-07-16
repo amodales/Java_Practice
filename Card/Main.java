@@ -22,15 +22,17 @@ public class Main {
 	//Painting Component
 	ImageIcon lost = null, won = null;
 	ImageIcon left = null, right = null, cross = null, cancel = null;
+	ImageIcon start_menu = null;
 	ImageIcon[] show_players = new ImageIcon[4];
 	ImageIcon[] rotation = new ImageIcon[2];
 	Canvas Game_Canvas = null;
+	SCanvas Sum_Canvas = null;
 
 	//Swing Component
 	JFrame Game_Frame = null;
 	JLayeredPane Game_Pane = null;
-	JPanel Bottom = null, Top = null;
-	JLabel board = null;
+	JPanel Bottom = null, Top = null, Screen = null, Summary = null;
+	JLabel board = null, menu = null;
 	JLabel[] buttons = new JLabel[4];
 	JLabel[] status = new JLabel[2];
 
@@ -42,7 +44,7 @@ public class Main {
 	public static void main(String argv[]){
 		Main Game = new Main();
 		Game.CreateAndShow();
-		Game.start();
+		//Game.start();
 	}
 
 	public Main(){
@@ -69,6 +71,7 @@ public class Main {
 			cancel = new ImageIcon(new URL(ResourceLoader.getImagePath("pic/cancel.png", this)));
 			rotation[0] = new ImageIcon(new URL(ResourceLoader.getImagePath("pic/ck.png", this)));
 			rotation[1] = new ImageIcon(new URL(ResourceLoader.getImagePath("pic/cck.png", this)));
+			start_menu = new ImageIcon(new URL(ResourceLoader.getImagePath("pic/menu.png", this)));
 			for(i=0; i<4; i++){
 				show_players[i] = new ImageIcon(new URL(ResourceLoader.getImagePath("pic/p" + (i+1) + ".png", this)));
 			}
@@ -80,6 +83,7 @@ public class Main {
 		buttons[2] = new JLabel(right);
 		buttons[3] = new JLabel(cancel);
 		board = new JLabel();
+		menu = new JLabel(start_menu);
 		status[0] = new JLabel();
 		status[1] = new JLabel();
 	}
@@ -90,25 +94,76 @@ public class Main {
 		Game_Frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		//Top
 		Top = new JPanel();
-		Top.setBackground(new Color(0, 51, 0));
 		Top.setLayout(new GridLayout(1, 4, 0, 0));
-		Top.add(status[0]);
-		Top.add(status[1]);
+		Top.setBackground(new Color(0, 51, 0));
+		for(int i=0; i<4; i++){
+			Top.add(buttons[i]);
+		}
+		//Screen
+		Screen = new JPanel();
+		Screen.setLayout(new BorderLayout(0, 0));
+		Screen.add(menu);
 		//Bottom
 		Bottom = new JPanel();
 		Game_Canvas = new Canvas(this);
 		Game_Canvas.setPreferredSize(new Dimension(800, 600));
+		Bottom.setLayout(new BorderLayout(0, 0));
 		Bottom.add(Game_Canvas);
+		//Summary
+		Summary = new JPanel();
+		Sum_Canvas = new SCanvas(this);
+		Sum_Canvas.setPreferredSize(new Dimension(600, 500));
+		Summary.setLayout(new BorderLayout(0, 0));
+		Summary.add(Sum_Canvas);
 		//Layered
 		Game_Pane = new JLayeredPane();
 		Game_Pane.add(Bottom, JLayeredPane.DEFAULT_LAYER);
 		Game_Pane.add(Top, JLayeredPane.PALETTE_LAYER);
+		Game_Pane.add(Screen, JLayeredPane.MODAL_LAYER);
+		Game_Pane.add(Summary, JLayeredPane.POPUP_LAYER);
 		Bottom.setBounds(0, 0, 800, 600);
 		Top.setBounds(250, 370, 300, 100);
+		Screen.setBounds(100, 50, 600, 500);
+		Summary.setBounds(100, 50, 600, 500);
+		Summary.setVisible(false);
+		Top.setVisible(false);
 		Game_Pane.setPreferredSize(new Dimension(800, 600));
 		Game_Frame.getContentPane().add(Game_Pane);
 		Game_Frame.pack();
 		Game_Frame.setVisible(true);
+		Game_Canvas.UpdateGUI();
+	}
+
+	void Start_A_New_Game(){
+		/*
+			Initialization Cards & Distribute Cards
+		*/
+		deck = new Vector<Card>(52);
+		player_cards = new Vector<Vector<Card>>(4);
+		for(int i=1; i<=4; i++){
+			for(int j=1; j<=13; j++){
+				Card temp = new Card(i, j);
+				deck.add(temp);
+			}
+		}
+		Shuffle();
+		Distribute_Cards();
+		/*
+			Initialization Variables
+		*/
+		score = 0;
+		outside = 0;
+		turn = 0;
+		dir = 0;
+		status[0].setIcon(show_players[turn]);
+		status[1].setIcon(rotation[dir]);
+		Top.revalidate();
+		is_started = true;
+		is_end = false;
+		Game_Canvas.UpdateGUI();
+		for(int i=0; i<3; i++){
+			cpu[i] = new AI(this, i+1, 0);
+		}
 	}
 
 	void start(){
@@ -220,9 +275,9 @@ public class Main {
 				if(op==0){
 					next_turn = (turn + 3) % 4;
 				}else if(op==1){
-					next_turn = (turn + 1) % 4;
-				}else if(op==2){
 					next_turn = (turn + 2) % 4;
+				}else if(op==2){
+					next_turn = (turn + 1) % 4;
 				}
 				break;
 			case 'T':

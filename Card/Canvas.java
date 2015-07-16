@@ -16,7 +16,6 @@ import java.io.IOException;
 import java.net.URL;
 
 import java.util.Vector;
-import java.util.Random;
 
 public class Canvas extends Component{
 	public static final long serialVersionUID = 2L;
@@ -31,10 +30,12 @@ public class Canvas extends Component{
 	BufferedImage[] poker_cards = new BufferedImage[52];
 	BufferedImage[] poker_cards_p90 = new BufferedImage[52];
 	BufferedImage[] poker_cards_m90 = new BufferedImage[52];
+	BufferedImage[] select = new BufferedImage[4];
 
 	BufferedImage card_back_vertical = null;
 	BufferedImage card_back_horizontal = null;
 	BufferedImage background = null;
+	BufferedImage new_cck = null, new_ck = null;
 	
 	Buttons_Listener[] B_Listeners = new Buttons_Listener[4];
 
@@ -52,6 +53,7 @@ public class Canvas extends Component{
 			B_Listeners[i] = new Buttons_Listener(this, i);
 			Game_Info.buttons[i].addMouseListener(B_Listeners[i]);
 		}
+		Game_Info.Screen.addMouseListener(new Menu_Listener(this));
 		/*
 			Pre-loading images.
 			Digits
@@ -65,13 +67,26 @@ public class Canvas extends Component{
 		}
 		/*
 			Pre-loading images.
-			Card_Back and Background
+			Card_Back, ck&cck icons and Background
 		*/
 		try{
 			card_back_vertical = ImageIO.read(new URL(ResourceLoader.getImagePath("pic/card_back.jpg", this)));
-			background = ImageIO.read(new URL(ResourceLoader.getImagePath("pic/background.jpg", this)));
+			background = ImageIO.read(new URL(ResourceLoader.getImagePath("pic/background.png", this)));
+			new_ck = ImageIO.read(new URL(ResourceLoader.getImagePath("pic/new_ck.png", this)));
+			new_cck = ImageIO.read(new URL(ResourceLoader.getImagePath("pic/new_cck.png", this)));
 		}catch(IOException e){
 			e.printStackTrace();
+		}
+		/*
+			Pre-loading images.
+			4 Select icons
+		*/
+		for(int i=0; i<4; i++){
+			try{
+				select[i] = ImageIO.read(new URL(ResourceLoader.getImagePath("pic/select_p"+(i+1)+".png", this)));
+			}catch(IOException e){
+				e.printStackTrace();
+			}
 		}
 		/*
 			Rotate 90 degree Card_Back
@@ -143,7 +158,6 @@ public class Canvas extends Component{
 	}
 
 	public void paint(Graphics g){
-		int i, x, y;
 		while(Canvas_Dim==null||img==null||BufferedGraphics==null){
 			Prepare_Painter();
 		}
@@ -155,7 +169,7 @@ public class Canvas extends Component{
 	}
 
 	void Paint_DecknScore(Graphics g){
-		int i, center_x, center_y;
+		int center_x, center_y, x, y;
 		Card temp;
 		center_x = Canvas_Dim.width/2;
 		center_y = Canvas_Dim.height/2;
@@ -166,8 +180,36 @@ public class Canvas extends Component{
 		if(Game_Info.outside!=Game_Info.max){
 			g.drawImage(card_back_vertical, center_x+61, center_y-50, null);
 		}
-		g.drawImage(image_score[Game_Info.score/10], center_x-47, center_y-25, null);
-		g.drawImage(image_score[Game_Info.score%10], center_x+3, center_y-25, null);
+		if(Game_Info.dir==0){
+			g.drawImage(new_cck, center_x-47, center_y-25-29, null);
+		}else{
+			g.drawImage(new_ck, center_x-47, center_y-25-29, null);
+		}
+		g.drawImage(image_score[Game_Info.score/10], center_x-47, center_y-25+29, null);
+		g.drawImage(image_score[Game_Info.score%10], center_x+3, center_y-25+29, null);
+		switch(Game_Info.turn){
+			case 0:
+				x = center_x-30+2;
+				y = center_y-25+29+50+30;
+				break;
+			case 1:
+				x = center_x+61+80+30;
+				y = center_y-30;
+				break;
+			case 2:
+				x = center_x-30+2;
+				y = center_y-25-29-60-30;
+				break;
+			case 3:
+				x = center_x-135-60-30;
+				y = center_y-30;
+				break;
+			default:
+				//NO WAY
+				x = center_x;
+				y = center_y;
+		}
+		g.drawImage(select[Game_Info.turn], x, y, null);
 	}
 
 	void Paint_Players_Cards(Graphics g){
@@ -310,7 +352,6 @@ public class Canvas extends Component{
 				int p = -1, i;
 				char num;
 				Card temp = null;
-				Random rand = null;
 				if(x>=(owner.Canvas_Dim.width-400)/2&&x<(owner.Canvas_Dim.width-400)/2+80&&y<=(owner.Canvas_Dim.height-2)&&y>=(owner.Canvas_Dim.height-102)){
 					p = 0;
 				}
@@ -330,24 +371,17 @@ public class Canvas extends Component{
 				if(temp!=null&&temp.isOkay){
 					num = temp.get_Num();
 					if(num!='5'){
-						owner.Game_Info.GiveAndTake(0, p, 0);
 						owner.is_showMenu = false;
-						owner.Game_Info.Top.removeAll();
-						owner.Game_Info.Top.add(owner.Game_Info.status[0]);
-						owner.Game_Info.Top.add(owner.Game_Info.status[1]);
-						owner.Game_Info.status[0].setIcon(owner.Game_Info.show_players[owner.Game_Info.turn]);
-						owner.Game_Info.status[1].setIcon(owner.Game_Info.rotation[owner.Game_Info.dir]);
-						owner.Game_Info.Top.revalidate();
+						owner.Game_Info.GiveAndTake(0, p, 0);
+						owner.Game_Info.Top.setVisible(false);
 						owner.UpdateGUI();
 					}
 					if(num=='5'&&!owner.is_showMenu){
 						owner.is_showMenu = true;
-						owner.Game_Info.Top.removeAll();
 						for(i=0; i<4; i++){
-							owner.Game_Info.Top.add(owner.Game_Info.buttons[i]);
 							owner.B_Listeners[i].set_Info(0, p);
 						}
-						owner.Game_Info.Top.revalidate();
+						owner.Game_Info.Top.setVisible(true);
 						owner.UpdateGUI();
 					}
 				}
@@ -391,23 +425,10 @@ public class Canvas extends Component{
 			if(owner.Game_Info.is_started&&owner.Game_Info.turn==0){
 				if(opt!=3){
 					owner.Game_Info.GiveAndTake(player_id, card_id, opt);
-					owner.Game_Info.Top.removeAll();
-					owner.Game_Info.Top.add(owner.Game_Info.status[0]);
-					owner.Game_Info.Top.add(owner.Game_Info.status[1]);
-					owner.Game_Info.status[0].setIcon(owner.Game_Info.show_players[owner.Game_Info.turn]);
-					owner.Game_Info.status[1].setIcon(owner.Game_Info.rotation[owner.Game_Info.dir]);
-					owner.Game_Info.Top.revalidate();
-					owner.UpdateGUI();
-				}else{
-					owner.is_showMenu = false;
-					owner.Game_Info.Top.removeAll();
-					owner.Game_Info.Top.add(owner.Game_Info.status[0]);
-					owner.Game_Info.Top.add(owner.Game_Info.status[1]);
-					owner.Game_Info.status[0].setIcon(owner.Game_Info.show_players[owner.Game_Info.turn]);
-					owner.Game_Info.status[1].setIcon(owner.Game_Info.rotation[owner.Game_Info.dir]);
-					owner.Game_Info.Top.revalidate();
-					owner.UpdateGUI();
 				}
+				owner.is_showMenu = false;
+				owner.Game_Info.Top.setVisible(false);
+				owner.UpdateGUI();
 			}
 		}
 
@@ -425,6 +446,75 @@ public class Canvas extends Component{
 
 		public void mouseExited(MouseEvent e){
 			//Do Nothing
+		}
+	}
+
+	private static class Menu_Listener implements MouseListener{
+		
+		Canvas owner;
+
+		public Menu_Listener(Canvas c){
+			owner = c;
+		}
+		
+		public void mouseClicked(MouseEvent e){
+			int x = e.getX();
+			int y = e.getY();
+			if(is_inButton1(x, y)){
+				owner.Game_Info.Screen.setVisible(false);
+				Game_Process gp = new Game_Process(owner.Game_Info);
+				gp.start();
+			}else if(is_inButton2(x, y)){
+				//Temporarily do nothing
+			}else if(is_inButton3(x, y)){
+				System.exit(0);
+			}
+		}
+
+		public void mouseEntered(MouseEvent e){
+			//Do Nothing
+		}
+
+		public void mouseReleased(MouseEvent e){
+			//Do Nothing
+		}
+
+		public void mousePressed(MouseEvent e){
+			//Do Nothing
+		}
+
+		public void mouseExited(MouseEvent e){
+			//Do Nothing
+		}
+
+		boolean is_inButton1(int x, int y){
+			if(x>=436&&x<=575&&y>=276&&y<=276+39){
+				return true;
+			}else if(x>=424&&x<=587&&y>=286&&y<=286+19){
+				return true;
+			}else{
+				return false;
+			}
+		}
+
+		boolean is_inButton2(int x, int y){
+			if(x>=436&&x<=575&&y>=329&&y<=329+39){
+				return true;
+			}else if(x>=424&&x<=587&&y>=339&&y<=339+19){
+				return true;
+			}else{
+				return false;
+			}
+		}
+
+		boolean is_inButton3(int x, int y){
+			if(x>=436&&x<=575&&y>=435&&y<=435+39){
+				return true;
+			}else if(x>=424&&x<=587&&y>=445&&y<=445+19){
+				return true;
+			}else{
+				return false;
+			}
 		}
 	}
 }
