@@ -37,6 +37,7 @@ public class SCanvas extends Component{
 		}catch(IOException e){
 			e.printStackTrace();
 		}
+		addMouseListener(new Summary_Listener(this));
 	}
 
 	public void Prepare_Painter(){
@@ -71,7 +72,13 @@ public class SCanvas extends Component{
 	}
 
 	public void Paint_Coins(Graphics g){
-
+		for(int i=0; i<4; i++){
+			if(Game_Info.player_coins[i]>0){
+				for(int j=0; j<Game_Info.player_coins[i]; j++){
+					g.drawImage(coin, 192+40*j, 81+100*i, null);	
+				}
+			}
+		}
 	}
 
 	private static class Summary_Listener implements MouseListener{
@@ -87,8 +94,26 @@ public class SCanvas extends Component{
 			int y = e.getY();
 			if(is_inButton(x, y)){
 				owner.Game_Info.Summary.setVisible(false);
-				Game_Process gp = new Game_Process(owner.Game_Info);
-				gp.start();
+				int winner = 4;
+				for(int i=0; i<4; i++){
+					if(owner.Game_Info.player_coins[i]==3){
+						winner = i;
+					}
+				}
+				if(winner==4){
+					Game_Process gp = new Game_Process(owner.Game_Info);
+					gp.start();
+				}else{
+					if(winner!=0){
+						owner.Game_Info.board.setIcon(owner.Game_Info.lost);
+					}else{
+						owner.Game_Info.board.setIcon(owner.Game_Info.won);
+					}
+					owner.Game_Info.Top.removeAll();
+					owner.Game_Info.Top.add(owner.Game_Info.board);
+					owner.Game_Info.Top.revalidate();
+					owner.Game_Info.Top.setVisible(true);
+				}
 			}
 		}
 

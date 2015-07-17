@@ -36,7 +36,8 @@ public class Canvas extends Component{
 	BufferedImage card_back_horizontal = null;
 	BufferedImage background = null;
 	BufferedImage new_cck = null, new_ck = null;
-	
+	BufferedImage dead = null;
+
 	Buttons_Listener[] B_Listeners = new Buttons_Listener[4];
 
 	boolean is_showMenu = false;
@@ -74,6 +75,7 @@ public class Canvas extends Component{
 			background = ImageIO.read(new URL(ResourceLoader.getImagePath("pic/background.png", this)));
 			new_ck = ImageIO.read(new URL(ResourceLoader.getImagePath("pic/new_ck.png", this)));
 			new_cck = ImageIO.read(new URL(ResourceLoader.getImagePath("pic/new_cck.png", this)));
+			dead = ImageIO.read(new URL(ResourceLoader.getImagePath("pic/dead.png", this)));
 		}catch(IOException e){
 			e.printStackTrace();
 		}
@@ -146,12 +148,13 @@ public class Canvas extends Component{
 			Prepare_Painter();
 		}
 		Paint_BackGround(BufferedGraphics);
-		Paint_DecknScore(BufferedGraphics);
 		if(Game_Info.is_started){
+			Paint_DecknScore(BufferedGraphics);
 			Paint_Players_Cards(BufferedGraphics);
 		}else{
 			if(Game_Info.is_end){
-				Paint_All_Players_Cards(BufferedGraphics);
+				Paint_DecknScore(BufferedGraphics);
+				Paint_Winners_Cards(BufferedGraphics);
 			}
 		}
 		repaint();
@@ -173,20 +176,35 @@ public class Canvas extends Component{
 		Card temp;
 		center_x = Canvas_Dim.width/2;
 		center_y = Canvas_Dim.height/2;
+		/*
+			Show the last card
+		*/
 		if(Game_Info.outside!=0){
-			temp = Game_Info.deck.get(Game_Info.max-1);
+			temp = Game_Info.deck.get(Game_Info.deck.size()-1);
 			g.drawImage(poker_cards[get_Card_Index(temp)], center_x-135, center_y-50, null);
 		}
-		if(Game_Info.outside!=Game_Info.max){
+		/*
+			Show Deck	
+		*/
+		if(Game_Info.outside!=Game_Info.deck.size()){
 			g.drawImage(card_back_vertical, center_x+61, center_y-50, null);
 		}
+		/*
+			Show Clockwise or Counter-Clockwise
+		*/
 		if(Game_Info.dir==0){
 			g.drawImage(new_cck, center_x-47, center_y-25-29, null);
 		}else{
 			g.drawImage(new_ck, center_x-47, center_y-25-29, null);
 		}
+		/*
+			Show Score
+		*/
 		g.drawImage(image_score[Game_Info.score/10], center_x-47, center_y-25+29, null);
 		g.drawImage(image_score[Game_Info.score%10], center_x+3, center_y-25+29, null);
+		/*
+			Set Select Icon Coordinate and Show Select Icon.
+		*/
 		switch(Game_Info.turn){
 			case 0:
 				x = center_x-30+2;
@@ -209,7 +227,8 @@ public class Canvas extends Component{
 				x = center_x;
 				y = center_y;
 		}
-		g.drawImage(select[Game_Info.turn], x, y, null);
+		if(!Game_Info.dead[Game_Info.turn])	g.drawImage(select[Game_Info.turn], x, y, null);
+		else	g.drawImage(dead, x, y, null);
 	}
 
 	void Paint_Players_Cards(Graphics g){
@@ -217,28 +236,78 @@ public class Canvas extends Component{
 			Top and Bottom Player
 		*/
 		for(int i=0; i<5; i++){
-			g.drawImage(card_back_vertical, (Canvas_Dim.width-400)/2+80*i, 2, null);
-			Card temp = Game_Info.player_cards.get(0).get(i);
-			int index = get_Card_Index(temp);
-			if(temp.isOkay){
-				g.drawImage(poker_cards[index], (Canvas_Dim.width-400)/2+80*i, Canvas_Dim.height-102, null);
-			}else{
-				g.drawImage(get_Gray_ICard(poker_cards[index]), (Canvas_Dim.width-400)/2+80*i, Canvas_Dim.height-102, null);
+			if(!Game_Info.dead[2])	g.drawImage(card_back_vertical, (Canvas_Dim.width-400)/2+80*i, 2, null);
+			if(!Game_Info.dead[0]){
+				Card temp = Game_Info.player_cards.get(0).get(i);
+				int index = get_Card_Index(temp);
+				if(temp.isOkay){
+					g.drawImage(poker_cards[index], (Canvas_Dim.width-400)/2+80*i, Canvas_Dim.height-102, null);
+				}else{
+					g.drawImage(get_Gray_ICard(poker_cards[index]), (Canvas_Dim.width-400)/2+80*i, Canvas_Dim.height-102, null);
+				}
 			}
 		}
 		/*
 			Left and Right Player
 		*/
 		for(int i=0; i<5; i++){
-			g.drawImage(card_back_horizontal, Canvas_Dim.width-102, (Canvas_Dim.height-400)/2+80*i, null);
-			g.drawImage(card_back_horizontal, 2, (Canvas_Dim.height-400)/2+80*i, null);
+			if(!Game_Info.dead[1])	g.drawImage(card_back_horizontal, Canvas_Dim.width-102, (Canvas_Dim.height-400)/2+80*i, null);
+			if(!Game_Info.dead[3])	g.drawImage(card_back_horizontal, 2, (Canvas_Dim.height-400)/2+80*i, null);
 		}
 	}
 
-	void Paint_All_Players_Cards(Graphics g){
+	void Paint_Winners_Cards(Graphics g){
+		int winner = 4, loc_x, loc_y;
+		for(int i=0; i<4; i++){
+			if(!Game_Info.dead[i])	winner = i;
+		}
+		switch(winner){
+			case 0:
+				for(int i=0; i<5; i++){
+					Card temp = Game_Info.player_cards.get(winner).get(i);
+					int index = get_Card_Index(temp);
+					if(temp.isOkay){
+						g.drawImage(poker_cards[index], (Canvas_Dim.width-400)/2+80*i, Canvas_Dim.height-102, null);
+					}else{
+						g.drawImage(get_Gray_ICard(poker_cards[index]), (Canvas_Dim.width-400)/2+80*i, Canvas_Dim.height-102, null);
+					}
+				}
+				break;
+			case 1:
+				for(int i=0; i<5; i++){
+					Card temp = Game_Info.player_cards.get(winner).get(i);
+					int index = get_Card_Index(temp);
+					if(temp.isOkay){
+						g.drawImage(poker_cards_p90[index], Canvas_Dim.width-102, (Canvas_Dim.height-400)/2+80*i, null);
+					}else{
+						g.drawImage(get_Gray_ICard(poker_cards_p90[index]), Canvas_Dim.width-102, (Canvas_Dim.height-400)/2+80*i, null);
+					}
+				}
+				break;
+			case 2:
+				for(int i=0; i<5; i++){
+					Card temp = Game_Info.player_cards.get(winner).get(i);
+					int index = get_Card_Index(temp);
+					if(temp.isOkay){
+						g.drawImage(poker_cards[index], (Canvas_Dim.width-400)/2+80*i, 2, null);
+					}else{
+						g.drawImage(get_Gray_ICard(poker_cards[index]), (Canvas_Dim.width-400)/2+80*i, 2, null);
+					}
+				}
+				break;
+			case 3:
+				for(int i=0; i<5; i++){
+					Card temp = Game_Info.player_cards.get(winner).get(i);
+					int index = get_Card_Index(temp);
+					if(temp.isOkay){
+						g.drawImage(poker_cards_m90[index], 2, (Canvas_Dim.height-400)/2+80*i, null);
+					}else{
+						g.drawImage(get_Gray_ICard(poker_cards_m90[index]), 2, (Canvas_Dim.height-400)/2+80*i, null);
+					}
+				}
+				break;
+		}
 		/*
-			Top and  Bottom Player
-		*/
 		for(int i=0; i<5; i++){
 			Card temp = Game_Info.player_cards.get(2).get(i);
 			int index = get_Card_Index(temp);
@@ -255,9 +324,6 @@ public class Canvas extends Component{
 				g.drawImage(get_Gray_ICard(poker_cards[index]), (Canvas_Dim.width-400)/2+80*i, Canvas_Dim.height-102, null);
 			}
 		}
-		/*
-			Left and Right player
-		*/
 		for(int i=0; i<5; i++){
 			Card temp = Game_Info.player_cards.get(3).get(i);
 			int index = get_Card_Index(temp);
@@ -274,6 +340,7 @@ public class Canvas extends Component{
 				g.drawImage(get_Gray_ICard(poker_cards_p90[index]), Canvas_Dim.width-102, (Canvas_Dim.height-400)/2+80*i, null);
 			}
 		}
+		*/
 	}
 
 	int get_Card_Index(Card c){
@@ -381,6 +448,9 @@ public class Canvas extends Component{
 						for(i=0; i<4; i++){
 							owner.B_Listeners[i].set_Info(0, p);
 						}
+						owner.Game_Info.buttons[2].setVisible(!owner.Game_Info.dead[1]);
+						owner.Game_Info.buttons[1].setVisible(!owner.Game_Info.dead[2]);
+						owner.Game_Info.buttons[0].setVisible(!owner.Game_Info.dead[3]);
 						owner.Game_Info.Top.setVisible(true);
 						owner.UpdateGUI();
 					}
@@ -462,6 +532,9 @@ public class Canvas extends Component{
 			int y = e.getY();
 			if(is_inButton1(x, y)){
 				owner.Game_Info.Screen.setVisible(false);
+				for(int i=0; i<4; i++){
+					owner.Game_Info.player_coins[i] = 0;
+				}
 				Game_Process gp = new Game_Process(owner.Game_Info);
 				gp.start();
 			}else if(is_inButton2(x, y)){

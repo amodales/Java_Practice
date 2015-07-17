@@ -17,6 +17,8 @@ public class Main {
 	Vector<Card> deck = null;
 	Vector<Vector<Card>> player_cards = null;
 	
+	int [] player_coins = new int[4];
+
 	AI[] cpu = new AI[3];
 
 	//Painting Component
@@ -40,6 +42,7 @@ public class Main {
 	
 	boolean is_started = false, is_end;
 	boolean[] dead = new boolean[4];
+	boolean[] is_able = new boolean[4];
 
 	public static void main(String argv[]){
 		Main Game = new Main();
@@ -48,19 +51,6 @@ public class Main {
 	}
 
 	public Main(){
-		Card temp;
-		int i, j;
-		/*
-			Initialization Cards.
-		*/
-		deck = new Vector<Card>(52);
-		player_cards = new Vector<Vector<Card>>(4);
-		for(i=1; i<=4; i++){
-			for(j=1; j<=13; j++){
-				temp = new Card(i, j);
-				deck.add(temp);
-			}
-		}
 		//Pre-Loading
 		try{
 			lost = new ImageIcon(new URL(ResourceLoader.getImagePath("pic/lost.gif", this)));
@@ -72,7 +62,7 @@ public class Main {
 			rotation[0] = new ImageIcon(new URL(ResourceLoader.getImagePath("pic/ck.png", this)));
 			rotation[1] = new ImageIcon(new URL(ResourceLoader.getImagePath("pic/cck.png", this)));
 			start_menu = new ImageIcon(new URL(ResourceLoader.getImagePath("pic/menu.png", this)));
-			for(i=0; i<4; i++){
+			for(int i=0; i<4; i++){
 				show_players[i] = new ImageIcon(new URL(ResourceLoader.getImagePath("pic/p" + (i+1) + ".png", this)));
 			}
 		}catch(Exception e){
@@ -136,7 +126,7 @@ public class Main {
 
 	void Start_A_New_Game(){
 		/*
-			Initialization Cards & Distribute Cards
+			Initialization Cards
 		*/
 		deck = new Vector<Card>(52);
 		player_cards = new Vector<Vector<Card>>(4);
@@ -146,84 +136,40 @@ public class Main {
 				deck.add(temp);
 			}
 		}
-		Shuffle();
-		Distribute_Cards();
 		/*
-			Initialization Variables
+			Initialization variables
 		*/
 		score = 0;
 		outside = 0;
 		turn = 0;
 		dir = 0;
-		status[0].setIcon(show_players[turn]);
-		status[1].setIcon(rotation[dir]);
-		Top.revalidate();
-		is_started = true;
-		is_end = false;
-		Game_Canvas.UpdateGUI();
-		for(int i=0; i<3; i++){
-			cpu[i] = new AI(this, i+1, 0);
-		}
-	}
-
-	void start(){
-		score = 0;
-		outside = 0;
-		turn = 0;
-		dir = 0;
-		status[0].setIcon(show_players[turn]);
-		status[1].setIcon(rotation[dir]);
-		Top.revalidate();
-		Shuffle();
+		/*
+			Shuffle & Distribute
+		*/
+		Shuffle(3);
 		Distribute_Cards();
+		is_started = true;
+		is_end = false;
+		Game_Canvas.UpdateGUI();
 		for(int i=0; i<3; i++){
 			cpu[i] = new AI(this, i+1, 0);
 		}
-		is_started = true;
-		Game_Canvas.UpdateGUI();
-		is_end = false;
-		while(!is_end){
-			if(turn!=0){
-				try{
-					Thread.sleep(1000);
-				}catch(Exception e){
-
-				}
-				if(!dead[turn]){
-					cpu[turn-1].nextMove();
-					status[0].setIcon(show_players[turn]);
-					status[1].setIcon(rotation[dir]);
-					Game_Pane.revalidate();
-					Game_Canvas.UpdateGUI();
-				}else{
-					is_end = true;
-				}
-			}else{
-				if(dead[turn])	is_end = true;
-				Game_Pane.revalidate();
-			}
-		}
-		is_started = false;
-		status[0].setIcon(show_players[turn]);
-		status[1].setIcon(rotation[dir]);
-		Game_Pane.revalidate();
-		Game_Canvas.UpdateGUI();
-		System.out.print("Loser: Player ");
-		System.out.println(turn+1);
 	}
 
-	void Shuffle(){
-		int i, j;
+	void Shuffle(int times){
+		int i, j, k;
 		Card temp;
 		Random rand = new Random();
-		for(i=0; i<deck.size(); i++){
-			j = rand.nextInt(deck.size());
-			while(j==i){
+		for(k=0; k<times; k++){
+			for(i=0; i<deck.size(); i++){
 				j = rand.nextInt(deck.size());
+				while(j==i){
+					j = rand.nextInt(deck.size());
+				}
+				temp = deck.get(i);
+				deck.set(i, deck.get(j));
+				deck.set(j, temp);
 			}
-			temp = deck.get(i);
-			deck.set(i, deck.get(j));
-			deck.set(j, temp);
 		}
 	}
 
@@ -243,6 +189,7 @@ public class Main {
 				deck.removeElementAt(k);
 			}
 			dead[i] = false;
+			is_able[i] = true;
 		}
 		max = deck.size();
 	}
@@ -250,10 +197,9 @@ public class Main {
 	void GiveAndTake(int player_id, int card_id, int op){
 		if(outside==max){
 			outside = 0;
-			Shuffle();
+			Shuffle(3);
 		}
 		int delta, i, next_turn;
-		Random rand = new Random();
 		Card temp = player_cards.get(player_id).get(card_id);
 		next_turn = (dir==0)? (turn + 1) % 4: (turn + 3) % 4;
 		switch(temp.get_Num()){
@@ -272,6 +218,7 @@ public class Main {
 				next_turn = (dir==0)? (turn + 1) % 4: (turn + 3) % 4;
 				break;
 			case '5':
+				/*
 				if(op==0){
 					next_turn = (turn + 3) % 4;
 				}else if(op==1){
@@ -279,6 +226,8 @@ public class Main {
 				}else if(op==2){
 					next_turn = (turn + 1) % 4;
 				}
+				*/
+				next_turn = (turn + 3 - op) % 4;
 				break;
 			case 'T':
 				score -= 10;
@@ -291,13 +240,13 @@ public class Main {
 				score = 99;
 				break;
 		}
-		i = rand.nextInt(deck.size());
 		deck.add(temp);
 		outside++;
-		temp = deck.get(i);
-		deck.removeElementAt(i);
+		temp = deck.get(0);
+		deck.removeElementAt(0);
 		player_cards.get(player_id).setElementAt(temp, card_id);
 		turn = next_turn;
+		while(dead[turn])	turn = (dir==0)? (turn + 1) % 4: (turn + 3) % 4;
 		Reset_All_Flags();
 	}
 
@@ -331,13 +280,15 @@ public class Main {
 		Card temp;
 		boolean check;
 		for(int i=0; i<4; i++){
-			check = false;
-			for(int j=0; j<5; j++){
-				temp = player_cards.get(i).get(j);
-				temp.isOkay = Preset_Card(temp);
-				check = check || temp.isOkay;
+			if(!dead[i]){
+				check = false;
+				for(int j=0; j<5; j++){
+					temp = player_cards.get(i).get(j);
+					temp.isOkay = Preset_Card(temp);
+					check = check || temp.isOkay;
+				}
+				is_able[i] = check;
 			}
-			dead[i] = !check;
 		}
 	}
 }
